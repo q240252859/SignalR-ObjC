@@ -200,7 +200,11 @@
     HTAppDotNetAPIClient *manager = [HTAppDotNetAPIClient sharedClient];
     manager.responseSerializer = [AFJSONResponseSerializer serializer];
     manager.requestSerializer.timeoutInterval = 240;
-    [manager GET:url parameters:parameters progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+    
+//    修改过的地方1
+    [manager GET:url parameters:parameters headers:nil progress:^(NSProgress * _Nonnull downloadProgress) {
+        
+    } success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         __strong __typeof(&*weakSelf)strongSelf = weakSelf;
         __strong __typeof(&*weakConnection)strongConnection = weakConnection;
         
@@ -244,34 +248,106 @@
         }
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         __strong __typeof(&*weakSelf)strongSelf = weakSelf;
-        __strong __typeof(&*weakConnection)strongConnection = weakConnection;
-        
-        SRLogLPError(@"longPolling did fail with error %@", error);
-        
-        canReconnect = @(NO);
-        
-        // Transition into reconnecting state
-        [SRConnection ensureReconnecting:strongConnection];
-        
-        if (![strongSelf tryCompleteAbort] &&
-            ![SRExceptionHelper isRequestAborted:error]) {
-            [strongConnection didReceiveError:error];
-            
-            SRLogLPDebug(@"will poll again in %ld seconds",(long)[_errorDelay integerValue]);
-            
-            canReconnect = @(YES);
-            
-            [[NSBlockOperation blockOperationWithBlock:^{
-                [strongSelf poll:strongConnection connectionData:connectionData completionHandler:nil];
-            }] performSelector:@selector(start) withObject:nil afterDelay:[strongSelf.errorDelay integerValue]];
-            
-        } else {
-            [strongSelf completeAbort];
-            if (block) {
-                block(nil,error);
-            }
-        }
+               __strong __typeof(&*weakConnection)strongConnection = weakConnection;
+               
+               SRLogLPError(@"longPolling did fail with error %@", error);
+               
+               canReconnect = @(NO);
+               
+               // Transition into reconnecting state
+               [SRConnection ensureReconnecting:strongConnection];
+               
+               if (![strongSelf tryCompleteAbort] &&
+                   ![SRExceptionHelper isRequestAborted:error]) {
+                   [strongConnection didReceiveError:error];
+                   
+                   SRLogLPDebug(@"will poll again in %ld seconds",(long)[_errorDelay integerValue]);
+                   
+                   canReconnect = @(YES);
+                   
+                   [[NSBlockOperation blockOperationWithBlock:^{
+                       [strongSelf poll:strongConnection connectionData:connectionData completionHandler:nil];
+                   }] performSelector:@selector(start) withObject:nil afterDelay:[strongSelf.errorDelay integerValue]];
+                   
+               } else {
+                   [strongSelf completeAbort];
+                   if (block) {
+                       block(nil,error);
+                   }
+               }
     }];
+//    [manager GET:url parameters:parameters progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+//        __strong __typeof(&*weakSelf)strongSelf = weakSelf;
+//        __strong __typeof(&*weakConnection)strongConnection = weakConnection;
+//
+//        BOOL shouldReconnect = NO;
+//        BOOL disconnectedReceived = NO;
+//
+//        NSString * jsonStr;
+//        if ([responseObject isKindOfClass:[NSDictionary class]]){
+//            jsonStr = [self convertToJsonData:responseObject];
+//        }
+//
+//        [strongSelf processResponse:strongConnection response:responseObject shouldReconnect:&shouldReconnect disconnected:&disconnectedReceived];
+//        if (block) {
+//            block(nil, nil);
+//        }
+//
+//        if ([strongSelf isConnectionReconnecting:strongConnection]) {
+//            // If the timeout for the reconnect hasn't fired as yet just fire the
+//            // event here before any incoming messages are processed
+//            SRLogLPWarn(@"reconnecting");
+//            [strongSelf connectionReconnect:strongConnection canReconnect:canReconnect];
+//        }
+//
+//        if (shouldReconnect) {
+//            // Transition into reconnecting state
+//            SRLogLPDebug(@"longPolling did receive shouldReconnect command from server");
+//            [SRConnection ensureReconnecting:strongConnection];
+//        }
+//
+//        if (disconnectedReceived) {
+//            SRLogLPDebug(@"longPolling did receive disconnect command from server");
+//            [strongConnection disconnect];
+//        }
+//
+//        if (![strongSelf tryCompleteAbort]) {
+//            //Abort has not been called so continue polling...
+//            canReconnect = @(YES);
+//            [strongSelf poll:strongConnection connectionData:connectionData completionHandler:nil];
+//        } else {
+//            SRLogLPWarn(@"longPolling has shutdown due to abort");
+//        }
+//    } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+//        __strong __typeof(&*weakSelf)strongSelf = weakSelf;
+//        __strong __typeof(&*weakConnection)strongConnection = weakConnection;
+//
+//        SRLogLPError(@"longPolling did fail with error %@", error);
+//
+//        canReconnect = @(NO);
+//
+//        // Transition into reconnecting state
+//        [SRConnection ensureReconnecting:strongConnection];
+//
+//        if (![strongSelf tryCompleteAbort] &&
+//            ![SRExceptionHelper isRequestAborted:error]) {
+//            [strongConnection didReceiveError:error];
+//
+//            SRLogLPDebug(@"will poll again in %ld seconds",(long)[_errorDelay integerValue]);
+//
+//            canReconnect = @(YES);
+//
+//            [[NSBlockOperation blockOperationWithBlock:^{
+//                [strongSelf poll:strongConnection connectionData:connectionData completionHandler:nil];
+//            }] performSelector:@selector(start) withObject:nil afterDelay:[strongSelf.errorDelay integerValue]];
+//
+//        } else {
+//            [strongSelf completeAbort];
+//            if (block) {
+//                block(nil,error);
+//            }
+//        }
+//    }];
     
     manager.operationQueue.maxConcurrentOperationCount = 1;
     self.pollingOperationQueue = manager.operationQueue;

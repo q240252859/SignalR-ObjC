@@ -263,7 +263,10 @@ typedef void (^SRCompletionHandler)(id response, NSError *error);
     manager.responseSerializer = [AFJSONResponseSerializer serializer];
     manager.requestSerializer.timeoutInterval = 240;
     
-    [manager GET:url parameters:parameters progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+//    修改过的地方1
+    [manager GET:url parameters:parameters headers:nil progress:^(NSProgress * _Nonnull downloadProgress) {
+        
+    } success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         __strong __typeof(&*weakSelf)strongSelf = weakSelf;
         __strong __typeof(&*weakConnection)strongConnection = weakConnection;
         if (strongSelf.stop) {
@@ -295,6 +298,40 @@ typedef void (^SRCompletionHandler)(id response, NSError *error);
 
         [strongSelf.eventSource close];
     }];
+    
+    
+//    [manager GET:url parameters:parameters progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+//        __strong __typeof(&*weakSelf)strongSelf = weakSelf;
+//        __strong __typeof(&*weakConnection)strongConnection = weakConnection;
+//        if (strongSelf.stop) {
+//            [strongSelf completeAbort];
+//        } else if ([strongSelf tryCompleteAbort]) {
+//        } else {
+//            [strongSelf reconnect:strongConnection data:connectionData];
+//        }
+//    } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+//        __strong __typeof(&*weakSelf)strongSelf = weakSelf;
+//        if (strongSelf.completionHandler) {//this is equivalent to the !reconnecting onStartFailed from c#
+//            SRLogSSEDebug(@"serverSentEvents did fail while connecting");
+//            [NSObject cancelPreviousPerformRequestsWithTarget:self.connectTimeoutOperation
+//                                                     selector:@selector(start)
+//                                                       object:nil];
+//            self.connectTimeoutOperation = nil;
+//
+//            strongSelf.completionHandler(nil, error);
+//            strongSelf.completionHandler = nil;
+//        } else if (!isReconnecting){//failure should first attempt to reconect
+//            SRLogSSEWarn(@"will reconnect from errors: %@", error);
+//        } else {//failure while reconnecting should error
+//            //special case differs from above
+//            SRLogSSEError(@"error: %@", error);
+//
+//            [strongSelf.eventSource close: error];//clean up -> this should end up in eventSource.closed above
+//            return;//bail out early as we've taken care of the below
+//        }
+//
+//        [strongSelf.eventSource close];
+//    }];
     
     manager.operationQueue.maxConcurrentOperationCount = 1;
     self.serverSentEventsOperationQueue = manager.operationQueue;

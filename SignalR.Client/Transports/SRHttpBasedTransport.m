@@ -54,7 +54,11 @@
     HTAppDotNetAPIClient *manager = [HTAppDotNetAPIClient sharedClient];
     manager.responseSerializer = [AFJSONResponseSerializer serializer];
     manager.requestSerializer.timeoutInterval = 30;
-    [manager GET:[connection.url stringByAppendingString:@"negotiate"] parameters:parameters progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+    
+//    修改过的地方1
+    [manager GET:[connection.url stringByAppendingString:@"negotiate"] parameters:parameters headers:nil progress:^(NSProgress * _Nonnull downloadProgress) {
+        
+    } success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         if(block) {
             block([[SRNegotiationResponse alloc] initWithDictionary:responseObject], nil);
         }
@@ -63,6 +67,15 @@
             block(nil, error);
         }
     }];
+//    [manager GET:[connection.url stringByAppendingString:@"negotiate"] parameters:parameters progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+//        if(block) {
+//            block([[SRNegotiationResponse alloc] initWithDictionary:responseObject], nil);
+//        }
+//    } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+//        if(block) {
+//            block(nil, error);
+//        }
+//    }];
 }
 
 - (void)start:(id<SRConnectionInterface>)connection connectionData:(NSString *)connectionData completionHandler:(void (^)(id response, NSError *error))block {
@@ -77,7 +90,11 @@
     NSMutableURLRequest *url = [[AFHTTPRequestSerializer serializer] requestWithMethod:@"GET" URLString:[connection.url stringByAppendingString:@"send"] parameters:parameters error:nil];
     HTAppDotNetAPIClient *manager = [HTAppDotNetAPIClient sharedClient];
     manager.responseSerializer = [AFJSONResponseSerializer serializer];
-    [manager POST:[[url URL] absoluteString] parameters:@{ @"data" : data } progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+    
+//    修改过的地方1
+    [manager POST:[[url URL] absoluteString] parameters:@{ @"data" : data } headers:nil progress:^(NSProgress * _Nonnull uploadProgress) {
+        
+    } success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         [connection didReceiveData:responseObject];
         if(block) {
             block(responseObject, nil);
@@ -88,6 +105,18 @@
             block(nil, error);
         }
     }];
+    
+//    [manager POST:[[url URL] absoluteString] parameters:@{ @"data" : data } progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+//        [connection didReceiveData:responseObject];
+//        if(block) {
+//            block(responseObject, nil);
+//        }
+//    } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+//        [connection didReceiveError:error];
+//        if (block) {
+//            block(nil, error);
+//        }
+//    }];
     
 }
 
@@ -127,11 +156,20 @@
         NSMutableURLRequest *url = [[AFHTTPRequestSerializer serializer] requestWithMethod:@"GET" URLString:[connection.url stringByAppendingString:@"abort"] parameters:parameters error:nil];
         HTAppDotNetAPIClient *manager = [HTAppDotNetAPIClient sharedClient];
         manager.responseSerializer = [AFJSONResponseSerializer serializer];
-        [manager POST:[[url URL] absoluteString] parameters:nil progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+        
+//         修改过的地方1
+        [manager POST:[[url URL] absoluteString] parameters:nil headers:nil progress:^(NSProgress * _Nonnull uploadProgress) {
+            
+        } success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
             
         } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
             [self completeAbort];
         }];
+//        [manager POST:[[url URL] absoluteString] parameters:nil progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+//
+//        } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+//            [self completeAbort];
+//        }];
     }
 }
 
